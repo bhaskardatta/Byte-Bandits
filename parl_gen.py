@@ -3,15 +3,20 @@ from parler_tts import ParlerTTSForConditionalGeneration
 from transformers import AutoTokenizer
 import soundfile as sf
 
-def audio_generator(prompt = "Hey!!! Pass an input to generate audio"):
+def parl_loader():
     device = "cpu"
 
-    model = ParlerTTSForConditionalGeneration.from_pretrained("parler-tts/parler-tts-mini-multilingual-v1.1").to(device)
+    model = ParlerTTSForConditionalGeneration.from_pretrained(
+        "parler-tts/parler-tts-mini-multilingual-v1.1", 
+        attn_implementation="eager").to(device)
     tokenizer = AutoTokenizer.from_pretrained("parler-tts/parler-tts-mini-multilingual-v1.1")
     description_tokenizer = AutoTokenizer.from_pretrained(model.config.text_encoder._name_or_path)
 
+    return model, tokenizer, description_tokenizer
+
+def audio_generator(model, tokenizer, description_tokenizer, device="cpu", prompt = "Hey!!! Pass an input to generate audio", file="default", speaker="female",tone="happy"):
     # prompt = "A female speaker delivers fully excited and realistic speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up"
-    description = "A female delivers speech in a happy mood and realistic speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up."
+    description = f"A {speaker} delivers speech in slight {tone} tone and realistic speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up."
 
     # Create input_ids and attention_masks for description
     description_inputs = description_tokenizer(description, return_tensors="pt")
@@ -33,6 +38,6 @@ def audio_generator(prompt = "Hey!!! Pass an input to generate audio"):
 
     # Convert and save audio
     audio_arr = generation.cpu().numpy().squeeze()
-    sf.write("parler_tts_out.wav", audio_arr, model.config.sampling_rate)
-
-audio_generator('''empowerment is authority it is a sign permission''')
+    sf.write(f"audio/{file}.wav", audio_arr, model.config.sampling_rate)
+model, tokenizer, description_tokenizer = parl_loader()
+audio_generator(model=model, tokenizer=tokenizer, description_tokenizer=description_tokenizer, prompt='''It's a process of getting stronger, more confident, and more engaged.''', speaker="Sarah")
