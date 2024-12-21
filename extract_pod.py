@@ -17,7 +17,7 @@ def parse_podcast_transcript(transcript_text):
     
     # Speaker mapping dictionary
     speaker_mapping = {
-        'HOST': {'gender': 'host', 'aliases': ['HOST', 'H', 'HOST (H)', 'H:', 'HOST:', 'Host (H):']},
+        'HOST': {'gender': 'gary', 'aliases': ['HOST', 'H', 'HOST (H)', 'H:', 'HOST:', 'Host (H):']},
         'GUEST': {'gender': 'sarah', 'aliases': ['SARAH', 'S', 'SARAH (S)', 'S:', 'SARAH:', 'Sarah (S):']}
     }
     
@@ -106,7 +106,7 @@ model, tokenizer, description_tokenizer = parl_loader()
 speaker_tokens = {}
 for entry in parsed_data["series"]:
     if entry['speaker_gender'] not in speaker_tokens.keys():
-        speaker_tokens[entry['speaker_gender']] = list(describe_speaker(speaker=entry['speaker_gender']))
+        speaker_tokens[entry['speaker_gender']] = list(describe_speaker(description_tokenizer, speaker=entry['speaker_gender']))
     print(f"Index: {entry['index']}")
     print(f"Speaker: {entry['speaker_gender']}")
     print(f"Tone: {entry['tone']}")

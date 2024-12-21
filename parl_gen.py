@@ -16,7 +16,7 @@ def parl_loader():
 
     return model, tokenizer, description_tokenizer
 
-def describe_speaker(speaker="host", tone="happy", device="cpu"):
+def describe_speaker(description_tokenizer, speaker="host", tone="happy", device="cpu"):
         # prompt = "A female speaker delivers fully excited and realistic speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up"
     description = f"A {speaker} delivers speech in slight {tone} tone and realistic speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up."
 
@@ -44,7 +44,7 @@ def audio_generator(model, tokenizer, input_ids, description_attention_mask, dev
     # Convert and save audio
     audio_arr = generation.cpu().numpy().squeeze()
     sf.write(f"audio/{file}.wav", audio_arr, model.config.sampling_rate)
-model, tokenizer, description_tokenizer = parl_loader()
-input_ids, description_attention_mask = describe_speaker("host")
+# model, tokenizer, description_tokenizer = parl_loader()
+# input_ids, description_attention_mask = describe_speaker("gary")
 
-# audio_generator(model=model, tokenizer=tokenizer, description_tokenizer=description_tokenizer, prompt='''It's a process of getting stronger, more confident, and more engaged.''', speaker="Sarah")
+# audio_generator(model=model, tokenizer=tokenizer, input_ids=input_ids, description_attention_mask=description_attention_mask, prompt='''It's a process of getting stronger, more confident, and more engaged.''', speaker="gary")
