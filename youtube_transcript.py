@@ -25,3 +25,31 @@ def fetch_video_title(youtube_url):
             return info.get("title", "Unknown_Title").replace(" ", "_").replace("|", "_")
     except Exception as e:
         return f"Error_Fetching_Title_{e}"
+
+def fetch_transcripts(youtube_url, target_language='en', save_path=r"C:\Users\bhask\Desktop\Hackfest\Tests"):
+    """
+    Fetches auto-generated transcripts from a YouTube video and optionally translates them.
+    """
+    try:
+        video_id = get_video_id(youtube_url)
+        
+        video_title = fetch_video_title(youtube_url)
+        print(f"Video Title: {video_title}")
+
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+        
+        if target_language != 'en':
+            transcript = YouTubeTranscriptApi.translate_transcript(transcript, target_language)
+
+        formatter = SRTFormatter()
+        srt_transcript = formatter.format_transcript(transcript)
+
+        os.makedirs(save_path, exist_ok=True)  
+        save_file = f"{save_path}\\{video_title}_{target_language}.srt"
+        with open(save_file, "w", encoding="utf-8") as file:
+            file.write(srt_transcript)
+        
+        return f"Transcript saved successfully at: {save_file}"
+    
+    except Exception as e:
+        return f"An error occurred: {e}"
