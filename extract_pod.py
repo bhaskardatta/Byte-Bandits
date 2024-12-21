@@ -99,18 +99,18 @@ parsed_data = parse_podcast_transcript(content)
 
 # Print result (for demonstration)
 import json
-from parl_gen import audio_generator, parl_loader
+from parl_gen import audio_generator, parl_loader, describe_speaker
 print(json.dumps(parsed_data, indent=2))
 
 model, tokenizer, description_tokenizer = parl_loader()
-temp_prev_speaker = None
+speaker_tokens = {}
 for entry in parsed_data["series"]:
-    
-    temp = ""
+    if entry['speaker_gender'] not in speaker_tokens.keys():
+        speaker_tokens[entry['speaker_gender']] = list(describe_speaker(speaker=entry['speaker_gender']))
     print(f"Index: {entry['index']}")
     print(f"Speaker: {entry['speaker_gender']}")
     print(f"Tone: {entry['tone']}")
     print(f"Sentence: {entry['sentence']}")
-
-    audio_generator(model, tokenizer, description_tokenizer, "cpu", entry['sentence'], str(entry['index']), entry['speaker_gender'], "happy")
+    print(len(speaker_tokens))
+    audio_generator(model, tokenizer, speaker_tokens[entry['speaker_gender']][0], speaker_tokens[entry['speaker_gender']][1],"cpu", entry['sentence'], str(entry['index']), entry['speaker_gender'], "happy")
     print("-" * 40)  # Separator for readability
