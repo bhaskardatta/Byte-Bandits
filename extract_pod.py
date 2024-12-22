@@ -1,116 +1,153 @@
-def parse_podcast_transcript(transcript_text):
+import re
+
+def process_dialogue(text):
     """
-    Converts a podcast transcript with emotional cues into a structured dictionary format,
-    standardizing speaker names and assigning gender.
+    Process a dialogue text with emotion tags into a structured dictionary.
     
     Args:
-        transcript_text (str): Raw podcast transcript text
+    text (str): Input text containing dialogue with emotion tags
     
     Returns:
-        dict: Structured podcast data with standardized speakers and gender information
+    dict: Structured dialogue data with speakers, tones, and sentences
     """
-    # Initialize the structure
-    podcast_data = {
-        "title": "",
-        "series": []
-    }
+    dialogue_data = {}
+    index = 1
     
-    # Speaker mapping dictionary
-    speaker_mapping = {
-        'HOST': {'gender': 'gary', 'aliases': ['HOST', 'H', 'HOST (H)', 'H:', 'HOST:', 'Host (H):']},
-        'GUEST': {'gender': 'sarah', 'aliases': ['SARAH', 'S', 'SARAH (S)', 'S:', 'SARAH:', 'Sarah (S):']}
-    }
-    
-    def normalize_speaker(raw_speaker):
-        """Helper function to normalize speaker names and add gender"""
-        raw_speaker = raw_speaker.upper()
-        for speaker_type, info in speaker_mapping.items():
-            if any(alias in raw_speaker for alias in info['aliases']):
-                return {
-                    'name': speaker_type,
-                    'display_name': 'Host' if speaker_type == 'HOST' else 'Sarah',
-                    'gender': info['gender']
-                }
-        return None
-    
-    # Split into lines and process
-    lines = [line.strip() for line in transcript_text.split('\n') if line.strip()]
-    series_index = 1
+    # Split the text into lines and remove empty lines
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
     
     for line in lines:
-        # Extract title
-        if line.startswith('**Podcast:'):
-            podcast_data['title'] = line.replace('**Podcast:', '').replace('**', '').strip()
+        # Skip lines that don't contain dialogue
+        if ':' not in line or not any(char.isalpha() for char in line):
             continue
             
-        # Skip empty lines
-        if not line:
+        # Extract components
+        try:
+            # Extract initial tone(s)
+            initial_tones = []
+            if line.startswith('['):
+                tone_end = line.find(']')
+                if tone_end != -1:
+                    tones = line[1:tone_end].strip()
+                    initial_tones = [tone.strip() for tone in tones.split(',')]
+                    line = line[tone_end + 1:].strip()
+            
+            # Split speaker and dialogue
+            speaker_part, dialogue_part = line.split(':', 1)
+            speaker = speaker_part.strip()
+            dialogue = dialogue_part.strip()
+            
+            # Extract end tone(s)
+            end_tones = []
+            if dialogue.endswith(']'):
+                tone_start = dialogue.rfind('[')
+                if tone_start != -1:
+                    tones = dialogue[tone_start + 1:-1].strip()
+                    end_tones = [tone.strip() for tone in tones.split(',')]
+                    dialogue = dialogue[:tone_start].strip()
+            
+            # Create dictionary entry
+            dialogue_data[index] = {
+                'speaker': speaker,
+                'tone': initial_tones,
+                'sentence': dialogue,
+                'end_tone': end_tones if end_tones else initial_tones.copy()  # Use initial tones if no end tones specified
+            }
+            
+            index += 1
+            
+        except Exception as e:
+            print(f"Error processing line: {line}")
+            print(f"Error details: {str(e)}")
             continue
-            
-        # Process dialogue lines
-        if ':**' in line:
-            # Extract speaker
-            raw_speaker = line.split(':**')[0].replace('**', '').strip()
-            content = line.split(':**')[1].strip()
-            
-            # Get normalized speaker info
-            speaker_info = normalize_speaker(raw_speaker)
-            if not speaker_info:
+    
+    return dialogue_data
+
+def change_speaker_names(dialogue_dict, name_mapping):
+    """
+    Change speaker names in the dialogue dictionary based on a custom mapping.
+    
+    Args:
+    dialogue_dict (dict): Original dialogue dictionary
+    name_mapping (dict): Dictionary mapping original names to new names
+    
+    Returns:
+    dict: Updated dialogue dictionary with new speaker names
+    """
+    updated_dialogue = dialogue_dict.copy()  # Create a copy to avoid modifying the original
+    
+    for index, entry in updated_dialogue.items():
+        original_speaker = entry['speaker']
+        if original_speaker in name_mapping:
+            entry['speaker'] = name_mapping[original_speaker]
+    
+    return updated_dialogue
+
+def print_dialogue_dict(dialogue_dict):
+    """
+    Print the dialogue dictionary in a readable format.
+    """
+    for index, entry in dialogue_dict.items():
+        print(f"\nEntry {index}:")
+        print(f"  Speaker: {entry['speaker']}")
+        print(f"  Tone: {entry['tone']}")
+        print(f"  Sentence: {entry['sentence']}")
+
+def remove_last_bracket_tag(line):
+    # Regular expression to find the last [tag]
+    return re.sub(r'\[.*?\]$', '', line).strip()
+
+def process_file(file_path, skip_lines=0):
+    result = []
+    with open(file_path, 'r') as file:
+        for i, line in enumerate(file):
+            if i < skip_lines:
                 continue
-                
-            # Split into emotional segments
-            segments = content.split('[')
-            for segment in segments:
-                if not segment:
-                    continue
-                    
-                # Extract emotion and text if emotion is present
-                if ']' in segment:
-                    emotion, text = segment.split(']')
-                    text = text.strip()
-                    if text:  # Only add if there's actual text content
-                        entry = {
-                            "index": series_index,
-                            "speaker": speaker_info['display_name'],
-                            "speaker_gender": speaker_info['gender'],
-                            "tone": emotion.strip(),
-                            "sentence": text.strip()
-                        }
-                        podcast_data["series"].append(entry)
-                        series_index += 1
-                        
-    return podcast_data
+            if line.strip():
+                # print(line)
+                result.append(line.strip() + '\n')
+    return " ".join(result)
 
-# Example usage:
-example_transcript = """**Podcast: Empowerment and the Journey of Life**
+def get_highest_index(folder_path):
+    max_index = -1  
+    import os
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".wav"):
+            try:
+                # Extract the index by removing the .wav extension and converting to integer
+                index = int(file_name.replace(".wav", ""))
+                max_index = max(max_index, index)
+            except ValueError:
+                # Ignore files that don't have a valid integer index
+                continue
+    return max_index
 
-**Host (H):** [Excitement] Welcome to "The Empowerment Journey," where we dive into the essence of taking charge of our lives and embracing the challenges that come our way. [Gratitude] Today, we have a special guest, Sarah, who has a wealth of wisdom to share about empowerment and resilience. [Warmth] Sarah, thank you so much for joining us.
+if __name__ == "__main__":
+    file_content = process_file("podcast_script.txt", skip_lines=6)
+    # print(file_content)
+    custom_mapping = {
+        "Alex": "Emma",
+        "Chris": "James"
+    }
+    file_dict = process_dialogue(file_content)
+    
+    custom_result = change_speaker_names(file_dict, custom_mapping)
+    print("\nWith custom speaker names:")
 
-**Sarah (S):** [Gratitude] Thank you, Host! It's an honor to be here. [Excitement] I'm excited to share some thoughts on empowerment and how it can transform our lives.
-
-**H:** [Agreement] Absolutely. Let's start with the basics. [Curiosity] What does empowerment mean to you?"""
-
-with open("ex_pod.txt", "r") as file:
-    # Read the entire content into a string variable
-    content = file.read()
-
-# Parse the transcript
-parsed_data = parse_podcast_transcript(content)
-
-# Print result (for demonstration)
-import json
-from parl_gen import audio_generator, parl_loader, describe_speaker
-print(json.dumps(parsed_data, indent=2))
-
-model, tokenizer, description_tokenizer = parl_loader()
-speaker_tokens = {}
-for entry in parsed_data["series"]:
-    if entry['speaker_gender'] not in speaker_tokens.keys():
-        speaker_tokens[entry['speaker_gender']] = list(describe_speaker(description_tokenizer, speaker=entry['speaker_gender']))
-    print(f"Index: {entry['index']}")
-    print(f"Speaker: {entry['speaker_gender']}")
-    print(f"Tone: {entry['tone']}")
-    print(f"Sentence: {entry['sentence']}")
-    print(len(speaker_tokens))
-    audio_generator(model, tokenizer, speaker_tokens[entry['speaker_gender']][0], speaker_tokens[entry['speaker_gender']][1],"cpu", entry['sentence'], str(entry['index']), entry['speaker_gender'], "happy")
-    print("-" * 40)  # Separator for readability
+    from parl_gen import parl_loader, describe_speaker, audio_generator 
+    model, tokenizer, description_tokenizer = parl_loader()
+    speaker_tokens = {}
+    print(custom_result)
+    max_idx = get_highest_index("audio")
+    for index, entry in custom_result.items():
+        print(f"\nEntry {index}:")
+        print(f"  Speaker: {entry['speaker']}")
+        print(f"  Tone: {entry['tone']}")
+        print(f"  Sentence: {entry['sentence']}")
+        if max_idx >= index:
+            continue 
+        if entry['speaker'] not in speaker_tokens.keys():
+            speaker_tokens[entry['speaker']] = list(describe_speaker(description_tokenizer, speaker=entry['speaker']))
+        print(len(speaker_tokens))
+        audio_generator(model, tokenizer, speaker_tokens[entry['speaker']][0], speaker_tokens[entry['speaker']][1],"cpu", entry['sentence'], str(index), entry['speaker'], "happy")
+        print("-" * 40)  # Separator for readability
