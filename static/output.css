@@ -1,0 +1,131 @@
+/* Global Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Header Container Styling */
+.header-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid #45a049;
+}
+
+.header-container a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+}
+
+.header-container a:hover {
+    text-decoration: underline;
+}
+
+.dark-mode-toggle {
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    background-color: #000;
+    color: #fff;
+    border-radius: 50%;
+    border: 2px solid #4CAF50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-mode-toggle:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Output Container */
+.output-container {
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* PDF Section */
+.pdf-container {
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.pdf-container h2 {
+    margin-bottom: 10px;
+}
+
+/* Audio Section */
+.audio-container {
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+}
+
+.audio-container h2 {
+    margin-bottom: 10px;
+}
+
+/* Footer Section */
+.footer-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+footer button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+footer button:hover {
+    background-color: #45a049;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background-color: #000000;
+    color: #fff;
+}
+
+body.dark-mode .output-container {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    padding:20px
+
+}
+
+body.dark-mode .pdf-container,
+body.dark-mode .audio-container {
+    background-color: #fff6f6;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+body.dark-mode .footer-container button {
+    background-color: #666;
+    color: white;
+}

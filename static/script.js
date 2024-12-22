@@ -3,6 +3,9 @@ const ttsStatus = document.getElementById("ttsStatus");
 let realTimeTranscript = ""; // To store the live transcript
 let listeningMessage = document.querySelector("#ttsWindow h2"); // Select the h2 element
 let recognition;
+let isProcessing = false; // Flag to prevent multiple submissions
+let isListening = false;  // Flag to track whether the mic is currently listening
+let listeningHeader = document.getElementById("listeningHeader");  // Get the h2 element
 
 // Dark-mode toggle
 function toggleDarkMode() {
@@ -18,7 +21,6 @@ function toggleDarkMode() {
         darkModeButton.textContent = '🌙'; // Moon emoji for dark mode
     }
 }
-
 
 // Initialize Speech Recognition
 function initializeSpeechRecognition() {
@@ -48,9 +50,11 @@ function initializeSpeechRecognition() {
 
         // Event: When recognition ends
         recognition.onend = () => {
-            ttsStatus.textContent = `Final Transcript: "${realTimeTranscript}"`;
-            if (listeningMessage) listeningMessage.style.display = "block"; // Reset for next session
-            saveTranscriptToBackend(realTimeTranscript); // Save the transcript when recognition ends
+            if (isListening) {
+                ttsStatus.textContent = `Final Transcript: "${realTimeTranscript}"`;
+                if (listeningMessage) listeningMessage.style.display = "block"; // Reset for next session
+                saveTranscriptToBackend(realTimeTranscript); // Save the transcript when recognition ends
+            }
         };
 
         // Event: If there's an error
@@ -87,22 +91,37 @@ function capitalizeSentences(transcript) {
 
 // Toggle the TTS window and start/stop recognition
 function toggleMicModal() {
-    // Toggle visibility of TTS window and mic functionality
-    toggleTTSWindow();  // Use the toggle function for TTS window
+    if (isProcessing) return;  // Prevent triggering if already processing
 
-    if (ttsWindow.style.display === "block") {
-        realTimeTranscript = ""; // Reset transcript
-        ttsStatus.textContent = "Listening...";
-        if (listeningMessage) listeningMessage.style.display = "block"; // Show "Listening..."
+    if (isListening) {
+        // Stop listening
+        recognition.stop();
+        ttsStatus.innerText = 'Processing...'; // Change status to processing
+        if (listeningHeader) listeningHeader.style.display = "none"; // Hide "Listening..." message during processing
+        isListening = false; // Update the listening flag
+        isProcessing = true;  // Set the processing flag to true
 
-        // Start recognition only if not already started
+        // Show processing window for 5 seconds
+        setTimeout(function () {
+            ttsWindow.style.display = 'none'; // Hide processing window
+            window.location.href = '/output';  // Redirect to output page after processing
+        }, 5000);  // 5 seconds delay
+    } else {
+        // Start listening
+        ttsWindow.style.display = 'block';
+        ttsStatus.innerText = 'Listening...';
+
+        // Start speech recognition and request microphone access
         if (recognition && recognition.state !== "active") {
             recognition.start(); // This should trigger the microphone permission prompt
+            isListening = true;  // Update the listening flag
         }
-    } else {
-        if (recognition && recognition.state === "active") {
-            recognition.stop();
-        }
+
+        // After starting the recognition, wait for the results
+        recognition.onstart = () => {
+            ttsStatus.innerText = 'Listening...'; // Change status to listening once recognition starts
+            if (listeningHeader) listeningHeader.style.display = "block"; // Ensure "Listening..." message is visible when listening
+        };
     }
 }
 
@@ -135,5 +154,54 @@ function toggleTTSWindow() {
 // Initialize on page load
 initializeSpeechRecognition();
 
+// Fetch and process (this function also prevents double submission)
+function fetchAndSpeak() {
+    if (isProcessing) return;  // Prevent triggering if already processing
+
+    // Show processing window for 5 seconds
+    ttsWindow.style.display = 'block';
+    ttsStatus.innerText = 'Processing...';
+
+    // Simulate processing (5 seconds delay)
+    isProcessing = true;  // Set the processing flag
+    setTimeout(function () {
+        ttsWindow.style.display = 'none';  // Hide processing window
+        window.location.href = '/output';  // Redirect to output page after processing
+    }, 5000);  // 5 seconds delay
+}
+
+document.getElementById('goBackButton').addEventListener('click', function() {
+    // Redirect to the home page (or any other page)
+    window.location.href = '/';  // Or replace with '/home' if that's your desired path
+});
 
 
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Check if dark mode is already set in localStorage
+    const currentMode = localStorage.getItem('theme');
+    
+    // If dark mode is set in localStorage, apply it
+    if (currentMode === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.querySelector('.dark-mode-toggle').innerHTML = '🌞'; // Optional: Change button to indicate light mode
+    } else {
+        document.body.classList.remove('dark-mode');
+        document.querySelector('.dark-mode-toggle').innerHTML = '🌙'; // Optional: Change button to indicate dark mode
+    }
+
+    // Dark mode toggle button click handler
+    document.querySelector('.dark-mode-toggle').addEventListener('click', function() {
+        if (document.body.classList.contains('dark-mode')) {
+            // Switch to light mode
+            document.body.classList.remove('dark-mode');
+            document.querySelector('.dark-mode-toggle').innerHTML = '🌙'; // Change button to dark mode
+            localStorage.setItem('theme', 'light'); // Save theme preference in localStorage
+        } else {
+            // Switch to dark mode
+            document.body.classList.add('dark-mode');
+            document.querySelector('.dark-mode-toggle').innerHTML = '🌞'; // Change button to light mode
+            localStorage.setItem('theme', 'dark'); // Save theme preference in localStorage
+        }
+    });
+});

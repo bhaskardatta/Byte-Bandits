@@ -1,0 +1,257 @@
+/* Global Reset */
+.hidden {
+    display: none;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    width: 100%; /* Ensure the width is confined to 100% */
+}
+/* Ensure Layouts Don't Overflow */
+body, .container, .topics-container {
+    max-width: 100%; /* Ensure elements don't exceed viewport width */
+}
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100vh;
+    color: #000;
+    margin: 0;
+    background-image: url('assets/wallpaper.png'); /* Path to your wallpaper */
+    background-size: cover; /* Ensure the wallpaper covers the entire screen */
+}
+
+/* Header Container Styling */
+.header-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border-bottom: 2px solid #45a049;
+}
+
+.header-container a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+}
+
+.header-container a:hover {
+    text-decoration: underline;
+}
+
+/* Dark Mode Button */
+.dark-mode-toggle {
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    background-color: #000; /* Default background in light mode */
+    color: #fff; /* Light text color in light mode */
+    border-radius: 50%;
+    border: 2px solid #4CAF50; /* Green border in light mode */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-mode-toggle:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Search Bar Styling */
+.search-bar {
+    margin: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-bar input {
+    padding: 10px;
+    width: 300px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.search-bar button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Topics Section */
+.topics-container {
+    display: grid; /* Using grid layout */
+    grid-template-columns: repeat(3, 1fr); /* Creates 3 equal-width columns */
+    gap: 20px; /* Spacing between topics */
+    justify-items: center; /* Center the items horizontally */
+    margin: 20px;
+    width: 100%;
+    padding: 0 20px;
+}
+
+.topic {
+    width: 100%; /* Make sure the topic takes full width within the grid column */
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.3s, background-color 0.3s, color 0.3s;
+}
+
+.topic:hover {
+    transform: scale(1.05);
+    background-color: #e0f7fa;
+}
+
+/* Modal Window */
+#topicDetails {
+    display: none; /* Initially hidden */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 20px;
+    width: 80%;
+    max-width: 600px;
+    transition: all 0.3s ease-in-out;
+}
+
+#topicDetails audio {
+    margin-top: 15px;
+}
+
+#topicDetails .modal-content {
+    padding: 20px;
+}
+
+#topicDetails .close-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#topicDetails .close-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background-color: #121212;
+    color: #fff;
+}
+
+body.dark-mode .container {
+    background-color: #1e1e1e;
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode #micButton {
+    background-color: #666666;
+    color: #fff;
+}
+
+body.dark-mode .right input {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #555555;
+}
+
+body.dark-mode .right button {
+    background-color: #666666;
+}
+
+body.dark-mode .search-bar input {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+}
+
+body.dark-mode .search-bar button {
+    background-color: #666;
+}
+
+body.dark-mode .topics-container {
+    gap: 20px;
+    justify-content: center;
+    margin: 20px;
+}
+
+body.dark-mode .topic {
+    background-color: #333; /* Dark background for dark mode */
+    color: #f0f0f0; /* Light text for contrast */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .topic:hover {
+    background-color: #444; /* Slightly lighter for hover effect */
+}
+
+body.dark-mode .modal-content {
+    background-color: #333;
+    color: #fff;
+}
+
+body.dark-mode .modal-content a {
+    color: #4CAF50;
+}
+
+body.dark-mode .modal-content a:hover {
+    color: #81C784;
+}
+
+/* Light mode (default styles) */
+.topics-container {
+    display: grid; /* Using grid layout */
+    grid-template-columns: repeat(3, 1fr); /* 3 columns in light mode */
+    gap: 20px;
+    justify-items: center;
+    margin: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .topics-container {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .topics-container {
+        grid-template-columns: 1fr; /* 1 column on extra small screens */
+    }
+}

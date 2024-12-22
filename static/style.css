@@ -17,10 +17,11 @@ body {
     align-items: center;
     height: 100vh;
     font-family: 'Poppins', sans-serif;
+    background-color: #c4bebe;
     color: #000;
     margin: 0;
     background-image: url('assets/wallpaper.png'); /* Path to your wallpaper */
-    background-size: cover; /* This will ensure the wallpaper covers the entire screen */
+    /* This will ensure the wallpaper covers the entire screen */
 }
 
 /* Header Container Styling */
@@ -32,11 +33,27 @@ body {
     background-color: #4CAF50;
     color: white;
     padding: 10px 20px;
-    font-size: 20px;
+    font-size: 12px;
     font-weight: 500;
     border-bottom: 2px solid #45a049;
 }
-
+.header-container a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+}
+/* Navigation Links */
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 18px;
+    font-weight: 400;
+    transition: color 0.3s ease;
+}
+nav a:hover {
+    color: #c3f3c9; /* Light green hover color */
+}
 /* Main Container */
 .container {
     display: flex;
@@ -227,13 +244,14 @@ body.dark-mode .tts-window {
 
 @media (max-width: 480px) {
     body {
-        background-color: #666666; /* Dark background on small screens */
+        background-color: #c4bebe; /* Dark background on small screens */
+
     }
 
     #micButton {
         position: fixed;
-        bottom: 20px; /* Add some space from the bottom */
-        left: 50%;
+        bottom: 0px; /* Add some space from the bottom */
+        left: (50%-120px); /* Position it at the center horizontally */
         width: 240px; /* Adjust width to fit better on smaller screens */
         height: 120px; /* Adjust height to maintain a balanced aspect ratio */
         border-radius: 120px 120px 0 0; /* Make the top rounded and bottom flat */
@@ -271,5 +289,11 @@ body.dark-mode .tts-window {
         align-items: center; /* Center align items */
         gap: 15px; /* Reduced gap for compact layout */
         margin-top: 20vh; /* Give some space from the top */
+        width: 90%;
+        
+    }
+    .tts-window {
+        padding: 10px; /* Add padding to left and right of the TTS window */
+        width: 90%; /* Make the TTS window more responsive */
     }
 }
