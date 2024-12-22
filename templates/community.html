@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduBreeze Community</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='community.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-container">
+        <h1>EduBreeze Community</h1>
+        <a href="{{ url_for('index') }}">Home</a>
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchTopic" placeholder="Search topics...">
+            <button onclick="searchTopics()">Search</button>
+        </div>
+    </div>
+
+    <!-- Topics Section -->
+    <div class="topics-container">
+        <div class="topic" onclick="navigateToTopic('AI')">
+            <h2>AI</h2>
+            <p>Explore the world of Artificial Intelligence</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Windmills')">
+            <h2>Windmills</h2>
+            <p>Learn about sustainable energy</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Electric Vehicles')">
+            <h2>Electric Vehicles</h2>
+            <p>The future of transportation</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Robotics')">
+            <h2>Robotics</h2>
+            <p>Discover the innovations in robotics</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Blockchain')">
+            <h2>Blockchain</h2>
+            <p>Understand the technology behind cryptocurrencies</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Space Exploration')">
+            <h2>Space Exploration</h2>
+            <p>Venture into the mysteries of the universe</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Quantum Computing')">
+            <h2>Quantum Computing</h2>
+            <p>Learn about the next revolution in computing</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Biotechnology')">
+            <h2>Biotechnology</h2>
+            <p>Explore advancements in biological sciences</p>
+        </div>
+        <div class="topic" onclick="navigateToTopic('Cybersecurity')">
+            <h2>Cybersecurity</h2>
+            <p>Stay informed about digital security</p>
+        </div>
+
+        <!-- Topic Details Section -->
+        <div id="topicDetails" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="topicTitle"></h2>
+                <img id="topicImage" src="" alt="Topic Image">
+                <a id="topicPdf" href="" target="_blank">Download PDF</a>
+                <audio id="topicAudio" controls>
+                    <source src="" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <button class="close-btn" onclick="closeTopicDetails()">Close</button>
+            </div>
+        </div>
+    </div>
+
+   
+
+    <script src="{{ url_for('static', filename='community.js') }}"></script>
+</body>
+</html>
