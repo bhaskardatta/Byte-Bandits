@@ -1,0 +1,9 @@
+transformers
+pysrt
+python-webvtt
+python-dotenv
+torch
+parler-tts
+soundfile
+pydub
+youtube-search
