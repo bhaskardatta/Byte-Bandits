@@ -17,7 +17,7 @@ load_dotenv()
 API_URL_TRANSLATE = "https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-mul-en"
 API_URL_SUMMARY = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
 API_URL_PODCAST = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
-API_TOKEN = "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"  # Updated to fetch from .env
+API_TOKEN = "key"  # Updated to fetch from .env
 
 if not API_TOKEN:
     raise ValueError("API Key Not Working!")
