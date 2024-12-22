@@ -19,6 +19,7 @@ function toggleDarkMode() {
     }
 }
 
+
 // Initialize Speech Recognition
 function initializeSpeechRecognition() {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
