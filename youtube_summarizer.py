@@ -162,7 +162,7 @@ def generate_podcast_script(summary_path: str, video_title: str) -> str:
                     print(f"[WARNING] Received empty podcast script for video '{video_title}'.")
                     return None
                 
-                podcast_summary_dir, _ = create_directory_structure()
+                _, podcast_summary_dir = create_directory_structure()
                 podcast_path = os.path.join(podcast_summary_dir, f"{video_title}_podcast_summary.txt")
                 with open(podcast_path, "w", encoding="utf-8") as f:
                     f.write(cleaned_podcast)
