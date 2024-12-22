@@ -10,13 +10,14 @@ import pysrt
 import webvtt
 import requests
 from dotenv import load_dotenv
+import json  # Added for JSON operations
 
 load_dotenv()
 
 API_URL_TRANSLATE = "https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-mul-en"
 API_URL_SUMMARY = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
 API_URL_PODCAST = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
-API_TOKEN = "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"  # Ideally, store this in your .env file
+API_TOKEN = "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"  # Updated to fetch from .env
 
 if not API_TOKEN:
     raise ValueError("API Key Not Working!")
@@ -182,6 +183,63 @@ def generate_podcast_script(summary_path: str, video_title: str) -> str:
         print(f"[ERROR] Podcast script generation failed: {e}")
         return None
 
+def parse_podcast_script(podcast_path: str, video_title: str) -> dict:
+    """
+    Parses the podcast script into a dictionary with index, speaker, tone, and sentence.
+    
+    Args:
+        podcast_path (str): Path to the podcast summary txt file.
+        video_title (str): Title of the video, used for naming the output dict file.
+    
+    Returns:
+        dict: Dictionary containing the parsed podcast script.
+    """
+    podcast_dict = {}
+    speakers = ['Chris', 'Alex']
+    current_speaker_index = 0
+    
+    try:
+        with open(podcast_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        
+        for idx, line in enumerate(lines, start=1):
+            line = line.strip()
+            if not line:
+                continue  # Skip empty lines
+            
+            # Regex to extract tone and sentence
+            # Assuming format: "[Tone] Speaker: Sentence."
+            match = re.match(r"\[(.*?)\]\s*(?:\w+):\s*(.*)", line)
+            if match:
+                tone = match.group(1).strip()
+                sentence = match.group(2).strip()
+            else:
+                # If format doesn't match, assume no tone, entire line is sentence
+                tone = "Neutral"
+                sentence = line
+            
+            # Assign speaker alternately
+            speaker = speakers[current_speaker_index]
+            current_speaker_index = (current_speaker_index + 1) % len(speakers)
+            
+            # Add to dict
+            podcast_dict[idx] = {
+                "speaker": speaker,
+                "tone": tone,
+                "sentence": sentence
+            }
+        
+        # Save the dictionary to a JSON file
+        output_dict_path = os.path.join(os.getcwd(), f"{video_title}_podcast_dict.json")
+        with open(output_dict_path, "w", encoding="utf-8") as f:
+            json.dump(podcast_dict, f, indent=4)
+        
+        print(f"[INFO] Podcast dictionary saved to {output_dict_path}")
+        return podcast_dict
+    except Exception as e:
+        print(f"[ERROR] Failed to parse podcast script: {e}")
+        return {}
+
 def extract_video_title(youtube_url: str) -> str:
     command = ["yt-dlp", "--get-title", youtube_url]
     result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
@@ -299,6 +357,63 @@ def cleanup_files(*file_paths):
         else:
             print(f"[INFO] File does not exist, skipping: {file_path}")
 
+def parse_podcast_script(podcast_path: str, video_title: str) -> dict:
+    """
+    Parses the podcast script into a dictionary with index, speaker, tone, and sentence.
+    
+    Args:
+        podcast_path (str): Path to the podcast summary txt file.
+        video_title (str): Title of the video, used for naming the output dict file.
+    
+    Returns:
+        dict: Dictionary containing the parsed podcast script.
+    """
+    podcast_dict = {}
+    speakers = ['Chris', 'Alex']
+    current_speaker_index = 0
+    
+    try:
+        with open(podcast_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        
+        for idx, line in enumerate(lines, start=1):
+            line = line.strip()
+            if not line:
+                continue  # Skip empty lines
+            
+            # Regex to extract tone and sentence
+            # Assuming format: "[Tone] Speaker: Sentence."
+            match = re.match(r"\[(.*?)\]\s*(?:\w+):\s*(.*)", line)
+            if match:
+                tone = match.group(1).strip()
+                sentence = match.group(2).strip()
+            else:
+                # If format doesn't match, assume no tone, entire line is sentence
+                tone = "Neutral"
+                sentence = line
+            
+            # Assign speaker alternately
+            speaker = speakers[current_speaker_index]
+            current_speaker_index = (current_speaker_index + 1) % len(speakers)
+            
+            # Add to dict
+            podcast_dict[idx] = {
+                "speaker": speaker,
+                "tone": tone,
+                "sentence": sentence
+            }
+        
+        # Save the dictionary to a JSON file
+        output_dict_path = os.path.join(os.getcwd(), f"{video_title}_podcast_dict.json")
+        with open(output_dict_path, "w", encoding="utf-8") as f:
+            json.dump(podcast_dict, f, indent=4)
+        
+        print(f"[INFO] Podcast dictionary saved to {output_dict_path}")
+        return podcast_dict
+    except Exception as e:
+        print(f"[ERROR] Failed to parse podcast script: {e}")
+        return {}
+
 def main():
     if len(sys.argv) < 2:
         script_name = os.path.basename(__file__)
@@ -313,9 +428,13 @@ def main():
         english_text_file = translate_to_english_if_needed(text_file)
         summary_file = summarize_text(english_text_file, video_title)
         podcast_file = generate_podcast_script(summary_file, video_title)
+        if podcast_file:
+            podcast_dict = parse_podcast_script(podcast_file, video_title)
         cleanup_files(subtitle_file, text_file, english_text_file)
         print(f"[INFO] Summary saved to {summary_file}")
-        print(f"[INFO] Podcast script saved to {podcast_file}")
+        if podcast_file:
+            print(f"[INFO] Podcast script saved to {podcast_file}")
+            print(f"[INFO] Podcast dictionary saved to {video_title}_podcast_dict.json")
     except Exception as e:
         print(f"[ERROR] {e}")
         sys.exit(1)
