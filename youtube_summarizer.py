@@ -13,10 +13,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_URL_SUMMARIZE = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 API_URL_TRANSLATE = "https://api-inference.huggingface.co/models/Helsinki-NLP/opus-mt-mul-en"
+API_URL_SUMMARY = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
 API_URL_PODCAST = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct"
-API_TOKEN = "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"
+API_TOKEN = "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"  # Ideally, store this in your .env file
 
 if not API_TOKEN:
     raise ValueError("API Key Not Working!")
@@ -30,15 +30,40 @@ def query_huggingface_api(api_url: str, payload: dict) -> str:
     if response.status_code != 200:
         raise Exception(f"API request failed: {response.status_code} - {response.text}")
     response_json = response.json()
-    if isinstance(response_json, list) and "translation_text" in response_json[0]:
-        return response_json[0]["translation_text"]
-    if isinstance(response_json, list) and "summary_text" in response_json[0]:
-        return response_json[0]["summary_text"]
-    if isinstance(response_json, list) and "generated_text" in response_json[0]:
-        return response_json[0]["generated_text"]
+    if isinstance(response_json, list):
+        return response_json[0].get("generated_text") or ""
     if "error" in response_json:
         raise Exception(f"API Error: {response_json['error']}")
-    raise Exception(f"Unexpected API response: {response_json}")
+    else:
+        generated_text = response_json.get("generated_text", "")
+    print(f"[DEBUG] Prompt sent: {payload.get('inputs')}")
+    print(f"[DEBUG] Response received: {generated_text}")
+    return generated_text
+
+def remove_prompt_from_response(prompt: str, response: str) -> str:
+    """
+    Removes the prompt from the API response using regex.
+
+    Args:
+        prompt (str): The prompt that was sent to the API.
+        response (str): The raw response received from the API.
+
+    Returns:
+        str: The cleaned summary without the prompt.
+    """
+    # Escape the prompt to treat any special regex characters literally
+    escaped_prompt = re.escape(prompt)
+    
+    # Remove the prompt from the response
+    cleaned_summary = re.sub(escaped_prompt, '', response, flags=re.DOTALL).strip()
+    
+    # Additionally, handle cases where the prompt might not be present or partially present
+    if response.startswith(prompt):
+        cleaned_summary = response[len(prompt):].strip()
+    
+    print(f"[DEBUG] Original Response: {response}")
+    print(f"[DEBUG] Cleaned Summary: {cleaned_summary}")
+    return cleaned_summary
 
 def detect_language(text: str) -> str:
     try:
@@ -67,15 +92,26 @@ def summarize_text(text_path: str, video_title: str, max_length: int = 300, max_
     summaries = []
     for idx, chunk in enumerate(chunks):
         print(f"[INFO] Summarizing chunk {idx + 1}/{len(chunks)}...")
+        prompt = f"Summarize the following text into a high-quality, third-person, structured summary:\n\n{chunk}"
         payload = {
-            "inputs": f"Summarize the following text into a high-quality, third-person, structured summary:\n\n{chunk}",
-            "parameters": {"max_new_tokens": max_length, "temperature": 0.7}
+            "inputs": prompt,
+            "parameters": {"max_new_tokens": max_length, "temperature": 0.7},
+            "echo": False
         }
         retries = 0
         while retries < max_retries:
             try:
-                summary = query_huggingface_api(API_URL_SUMMARIZE, payload)
-                summaries.append(summary)
+                response = query_huggingface_api(API_URL_SUMMARY, payload)
+                
+                # Clean the response by removing the prompt
+                cleaned_summary = remove_prompt_from_response(prompt, response)
+                
+                # Check if the cleaned summary is not empty
+                if not cleaned_summary:
+                    print(f"[WARNING] Received empty summary for chunk {idx + 1}.")
+                    break
+                
+                summaries.append(cleaned_summary)
                 break
             except Exception as e:
                 if "currently loading" in str(e) or "503" in str(e):
@@ -87,7 +123,7 @@ def summarize_text(text_path: str, video_title: str, max_length: int = 300, max_
                     break
         if retries >= max_retries:
             print(f"[ERROR] Max retries reached for chunk {idx + 1}. Skipping...")
-    combined_summary = " ".join(summaries) if summaries else "Summarization failed for all chunks."
+    combined_summary = "\n\n".join(summaries) if summaries else "Summarization failed for all chunks."
     text_summary_dir, _ = create_directory_structure()
     summary_path = os.path.join(text_summary_dir, f"{video_title}_summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
@@ -101,37 +137,47 @@ def generate_podcast_script(summary_path: str, video_title: str) -> str:
         if not summary_text:
             raise ValueError("Summary text is empty. Cannot generate podcast script.")
         prompt = (
-            f"Convert the following summary into a podcast-style dialogue between two people. "
-            f"Each sentence should have an appropriate emotion tag like [thoughtful], [excited], or [curious] before the sentence. "
-            f"Make it conversational, engaging, and focused:\n\n{summary_text}"
+            "Transform the following text into a podcast-style dialogue between two people. "
+            "Add an emotional tag at the beginning of each sentence to reflect the speaker's tone. "
+            f"Here is the input:\n\n{summary_text}\n\nOutput a podcast dialogue with emotional annotations."
         )
-        payload = {"inputs": prompt, "parameters": {"max_new_tokens": 1000, "temperature": 0.7}}
-        podcast_script = query_huggingface_api(API_URL_PODCAST, payload)
-        if not podcast_script:
-            raise ValueError("AI returned an empty response for the podcast script.")
-        lines = podcast_script.splitlines()
-        clean_script = []
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue 
-            match = re.match(r"^(.*?): (.+?) \[(.+?)\]$", line)
-            if match:
-                speaker, dialogue, emotion = match.groups()
-                clean_script.append(f"[{emotion}] {speaker}: {dialogue}")
-            elif ":" in line:
-                speaker, dialogue = line.split(":", 1)
-                clean_script.append(f"[neutral] {speaker.strip()}: {dialogue.strip()}")
-            else:
-                clean_script.append(f"[neutral] {line}")
-        if not clean_script:
-            raise ValueError("Cleaned podcast script is empty after processing.")
-        _, podcast_summary_dir = create_directory_structure()
-        podcast_path = os.path.join(podcast_summary_dir, f"{video_title}_podcast_summary.txt")
-        with open(podcast_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(clean_script))
-        print(f"[INFO] Podcast script saved to {podcast_path}")
-        return podcast_path
+        payload = {
+            "inputs": prompt,
+            "parameters": {"max_new_tokens": 1000, "temperature": 0.7},
+            "echo": False            
+        }
+        retries = 0
+        max_retries = 5
+        retry_interval = 20
+        while retries < max_retries:
+            try:
+                response = query_huggingface_api(API_URL_PODCAST, payload)
+                
+                # Clean the response by removing the prompt
+                cleaned_podcast = remove_prompt_from_response(prompt, response)
+                
+                # Check if the cleaned podcast is not empty
+                if not cleaned_podcast:
+                    print(f"[WARNING] Received empty podcast script for video '{video_title}'.")
+                    return None
+                
+                podcast_summary_dir, _ = create_directory_structure()
+                podcast_path = os.path.join(podcast_summary_dir, f"{video_title}_podcast_summary.txt")
+                with open(podcast_path, "w", encoding="utf-8") as f:
+                    f.write(cleaned_podcast)
+                print(f"[INFO] Podcast script saved to {podcast_path}")
+                return podcast_path
+            except Exception as e:
+                if "currently loading" in str(e) or "503" in str(e):
+                    retries += 1
+                    print(f"[WARNING] Model loading. Retrying in {retry_interval} seconds... (Attempt {retries}/{max_retries})")
+                    time.sleep(retry_interval)
+                else:
+                    print(f"[ERROR] Podcast script generation failed: {e}")
+                    break
+        if retries >= max_retries:
+            print(f"[ERROR] Max retries reached for generating podcast script for video '{video_title}'. Skipping...")
+            return None
     except Exception as e:
         print(f"[ERROR] Podcast script generation failed: {e}")
         return None
@@ -180,7 +226,7 @@ def download_subtitles(youtube_url: str) -> str:
         return os.path.abspath(possible_vtt)
     else:
         raise FileNotFoundError("[ERROR] No .srt or .vtt subtitles found after download.")
-    
+
 def convert_subtitles_to_text(file_path: str) -> str:
     ext = os.path.splitext(file_path)[1].lower()
     full_text = []
