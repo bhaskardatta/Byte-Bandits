@@ -52,7 +52,15 @@ def chunk_text(text: str, max_chunk_size: int) -> List[str]:
     words = text.split()
     return [" ".join(words[i:i + max_chunk_size]) for i in range(0, len(words), max_chunk_size)]
 
-def summarize_text(text_path: str, max_length: int = 300, max_retries: int = 5, retry_interval: int = 20) -> str:
+def create_directory_structure():
+    base_dir = os.path.join(os.getcwd(), "summaries")
+    text_summary_dir = os.path.join(base_dir, "text_summary")
+    podcast_summary_dir = os.path.join(base_dir, "podcast_summary")
+    os.makedirs(text_summary_dir, exist_ok=True)
+    os.makedirs(podcast_summary_dir, exist_ok=True)
+    return text_summary_dir, podcast_summary_dir
+
+def summarize_text(text_path: str, video_title: str, max_length: int = 300, max_retries: int = 5, retry_interval: int = 20) -> str:
     with open(text_path, "r", encoding="utf-8") as f:
         text = f.read()
     chunks = chunk_text(text, max_chunk_size=700)
@@ -60,8 +68,7 @@ def summarize_text(text_path: str, max_length: int = 300, max_retries: int = 5, 
     for idx, chunk in enumerate(chunks):
         print(f"[INFO] Summarizing chunk {idx + 1}/{len(chunks)}...")
         payload = {
-            "inputs": f"Summarize the following text into a detailed and structured summary, "
-                      f"including an Introduction, Highlights, and a Conclusion:\n\n{chunk}",
+            "inputs": f"Summarize the following text into a high-quality, third-person, structured summary:\n\n{chunk}",
             "parameters": {"max_new_tokens": max_length, "temperature": 0.7}
         }
         retries = 0
@@ -78,35 +85,64 @@ def summarize_text(text_path: str, max_length: int = 300, max_retries: int = 5, 
                 else:
                     print(f"[ERROR] Summarization failed for chunk {idx + 1}: {e}")
                     break
-        else:
+        if retries >= max_retries:
             print(f"[ERROR] Max retries reached for chunk {idx + 1}. Skipping...")
     combined_summary = " ".join(summaries) if summaries else "Summarization failed for all chunks."
-    summary_path = "summary.txt"
+    text_summary_dir, _ = create_directory_structure()
+    summary_path = os.path.join(text_summary_dir, f"{video_title}_summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(combined_summary)
     return summary_path
 
-
-def generate_podcast_script(summary_path: str) -> str:
-    with open(summary_path, "r", encoding="utf-8") as f:
-        summary_text = f.read()
-    prompt = (
-        "Convert the following summary into a podcast-style dialogue between two people, Alex and Chris. "
-        "Each sentence should have an appropriate emotion tag like [thoughtful], [excited], or [curious]. "
-        "Make it conversational, engaging, and focused. Avoid repetitive phrases or filler:\n\n"
-        f"{summary_text}\n\n"
-        "Output the podcast dialogue with emotion tags."
-    )
-    payload = {"inputs": prompt, "parameters": {"max_new_tokens": 1000, "temperature": 0.7}}
+def generate_podcast_script(summary_path: str, video_title: str) -> str:
     try:
+        with open(summary_path, "r", encoding="utf-8") as f:
+            summary_text = f.read().strip()
+        if not summary_text:
+            raise ValueError("Summary text is empty. Cannot generate podcast script.")
+        prompt = (
+            f"Convert the following summary into a podcast-style dialogue between two people. "
+            f"Each sentence should have an appropriate emotion tag like [thoughtful], [excited], or [curious] before the sentence. "
+            f"Make it conversational, engaging, and focused:\n\n{summary_text}"
+        )
+        payload = {"inputs": prompt, "parameters": {"max_new_tokens": 1000, "temperature": 0.7}}
         podcast_script = query_huggingface_api(API_URL_PODCAST, payload)
+        if not podcast_script:
+            raise ValueError("AI returned an empty response for the podcast script.")
+        lines = podcast_script.splitlines()
+        clean_script = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue 
+            match = re.match(r"^(.*?): (.+?) \[(.+?)\]$", line)
+            if match:
+                speaker, dialogue, emotion = match.groups()
+                clean_script.append(f"[{emotion}] {speaker}: {dialogue}")
+            elif ":" in line:
+                speaker, dialogue = line.split(":", 1)
+                clean_script.append(f"[neutral] {speaker.strip()}: {dialogue.strip()}")
+            else:
+                clean_script.append(f"[neutral] {line}")
+        if not clean_script:
+            raise ValueError("Cleaned podcast script is empty after processing.")
+        _, podcast_summary_dir = create_directory_structure()
+        podcast_path = os.path.join(podcast_summary_dir, f"{video_title}_podcast_summary.txt")
+        with open(podcast_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(clean_script))
+        print(f"[INFO] Podcast script saved to {podcast_path}")
+        return podcast_path
     except Exception as e:
         print(f"[ERROR] Podcast script generation failed: {e}")
-        podcast_script = "Podcast script could not be generated."
-    podcast_path = "podcast_script.txt"
-    with open(podcast_path, "w", encoding="utf-8") as f:
-        f.write(podcast_script)
-    return podcast_path
+        return None
+
+def extract_video_title(youtube_url: str) -> str:
+    command = ["yt-dlp", "--get-title", youtube_url]
+    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        return result.stdout.strip().replace(" ", "_")
+    else:
+        raise ValueError("[ERROR] Could not fetch video title.")
 
 def extract_video_id(youtube_url: str) -> str:
     patterns = [
@@ -169,7 +205,6 @@ def translate_to_english_if_needed(file_path: str, max_retries: int = 5, retry_i
     if detected_language == "en":
         print("[INFO] Subtitles are already in English. Skipping translation.")
         return file_path
-
     print(f"[INFO] Detected language: {detected_language}. Translating to English...")
     chunks = chunk_text(text, max_chunk_size=chunk_size)
     translated_chunks = []
@@ -209,11 +244,14 @@ def translate_to_english_if_needed(file_path: str, max_retries: int = 5, retry_i
 
 def cleanup_files(*file_paths):
     for file_path in file_paths:
-        try:
-            os.remove(file_path)
-            print(f"[INFO] Deleted file: {file_path}")
-        except Exception as e:
-            print(f"[WARNING] Could not delete file {file_path}: {e}")
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"[INFO] Deleted file: {file_path}")
+            except Exception as e:
+                print(f"[WARNING] Could not delete file {file_path}: {e}")
+        else:
+            print(f"[INFO] File does not exist, skipping: {file_path}")
 
 def main():
     if len(sys.argv) < 2:
@@ -222,11 +260,13 @@ def main():
         sys.exit(1)
     youtube_url = sys.argv[1]
     try:
+        video_title = extract_video_title(youtube_url)
+        print(f"[INFO] Video title: {video_title}")
         subtitle_file = download_subtitles(youtube_url)
         text_file = convert_subtitles_to_text(subtitle_file)
         english_text_file = translate_to_english_if_needed(text_file)
-        summary_file = summarize_text(english_text_file)
-        podcast_file = generate_podcast_script(summary_file)
+        summary_file = summarize_text(english_text_file, video_title)
+        podcast_file = generate_podcast_script(summary_file, video_title)
         cleanup_files(subtitle_file, text_file, english_text_file)
         print(f"[INFO] Summary saved to {summary_file}")
         print(f"[INFO] Podcast script saved to {podcast_file}")
