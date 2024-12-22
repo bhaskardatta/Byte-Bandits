@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduBreeze</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-container">
+        <h1>EduBreeze</h1>
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+    </header>
+    
+
+    <!-- Main container -->
+    <div class="container">
+        <!-- Left Section: Microphone -->
+        <div class="left">
+            <button id="micButton" onclick="toggleMicModal()">🎤</button>
+        </div>
+
+        <!-- Right Section: Input and Button -->
+        <div class="right">
+            <label for="youtubeLink">Paste YouTube Link Here:</label>
+            <input type="text" id="youtubeLink" placeholder="Enter YouTube link">
+            <button onclick="fetchAndSpeak()">Speak YouTube Link</button>
+        </div>
+    </div>
+
+    <!-- TTS Window (Hidden by default) -->
+    <div id="ttsWindow" class="tts-window">
+        <div class="tts-content">
+            <h2>Listening...</h2>
+            <p id="ttsStatus">Say something, and we’ll process it!</p>
+        </div>
+    </div>
+
+    <!-- Link the JavaScript file correctly -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
